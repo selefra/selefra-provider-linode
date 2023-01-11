@@ -6,6 +6,7 @@ import (
 	"github.com/selefra/selefra-provider-sdk/provider"
 	"github.com/selefra/selefra-provider-sdk/provider/schema"
 	"github.com/spf13/viper"
+	"os"
 )
 
 const Version = "v0.0.1"
@@ -26,6 +27,14 @@ func GetProvider() *provider.Provider {
 
 				if len(linodeConfig.Providers) == 0 {
 					linodeConfig.Providers = append(linodeConfig.Providers, linode_client.Config{})
+				}
+
+				if linodeConfig.Providers[0].Token == "" {
+					linodeConfig.Providers[0].Token = os.Getenv("LINODE_TOKEN")
+				}
+
+				if linodeConfig.Providers[0].Token == "" {
+					return nil, schema.NewDiagnostics().AddErrorMsg("missing token in configuration")
 				}
 
 				clients, err := linode_client.NewClients(linodeConfig)
@@ -51,15 +60,11 @@ func GetProvider() *provider.Provider {
 				return `# token: "<YOUR_ACCESS_TOKEN>"`
 			},
 			Validation: func(ctx context.Context, config *viper.Viper) *schema.Diagnostics {
-				var client_config linode_client.Configs
-				err := config.Unmarshal(&client_config.Providers)
+				var clientConfig linode_client.Configs
+				err := config.Unmarshal(&clientConfig.Providers)
 
 				if err != nil {
 					return schema.NewDiagnostics().AddErrorMsg("analysis config err: %s", err.Error())
-				}
-
-				if len(client_config.Providers) == 0 {
-					return schema.NewDiagnostics().AddErrorMsg("analysis config err: no configuration")
 				}
 
 				return nil
